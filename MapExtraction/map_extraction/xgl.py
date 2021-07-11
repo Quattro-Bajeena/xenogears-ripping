@@ -12,6 +12,7 @@ from typing import BinaryIO
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
 from pygame.locals import *
 

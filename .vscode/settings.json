@@ -4,7 +4,8 @@
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
     "cmake.configureOnOpen": false,
     "python.analysis.extraPaths": [
-        "${workspaceFolder}/MapExtraction"
+        "${workspaceFolder}/MapExtraction",
+        "D:\\Programy\\Blender\\2.93\\2.93\\scripts\\modules"
     ],
     "python.analysis.typeCheckingMode": "basic"
     

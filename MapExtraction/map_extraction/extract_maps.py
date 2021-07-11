@@ -1,9 +1,17 @@
-from .xgl import sloppy_open, getData, loadModel, loadTextures, getNodes, saveModel
+import sys, os
 from pathlib import Path
+
+from .xgl import sloppy_open, getData, loadModel, loadTextures, getNodes, saveModel
+
 
 #MAP_FOLDER = Path(__file__).absolute().parent.parent / "Maps" / "Extracted"
 
-def load_and_save_map(file_no, rip_archive : Path, map_folder : Path):
+def load_and_save_map(file_no, rip_archive : Path, map_folder : Path, disable_output):
+
+    if disable_output:
+        sys.__stdout__ = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+
     print("loading archive...")
     diskIndex = 1 # there are disk 1 and disk 2
     dirIndex = 11 # 0-based index
@@ -46,3 +54,6 @@ def load_and_save_map(file_no, rip_archive : Path, map_folder : Path):
     target_folder = map_folder / str(fileIndex)
     target_folder.mkdir(exist_ok=True)
     saveModel(target_folder / f"level{fileIndex}.dae", model)
+
+    if disable_output:
+        sys.stdout = sys.__stdout__
