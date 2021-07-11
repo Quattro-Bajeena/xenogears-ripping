@@ -1,0 +1,11 @@
+{
+    "python.pythonPath": "C:\\Users\\motme\\AppData\\Local\\Programs\\Python\\Python39\\python.exe",
+    "cmake.sourceDirectory": "${workspaceFolder}/ISO",
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "cmake.configureOnOpen": false,
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/MapExtraction"
+    ],
+    "python.analysis.typeCheckingMode": "basic"
+    
+}
