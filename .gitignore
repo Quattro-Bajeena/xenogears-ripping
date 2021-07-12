@@ -4,6 +4,12 @@ STRIPCD1/
 STRIPCD2/
 three/
 Other/
+Converted/
+Extracted/
+MapExtraction/Include/
+MapExtraction/Scripts/
+pyvenv.cfg
+
 ########################## PYTHON IGNORE #######################
 
 # Byte-compiled / optimized / DLL files
@@ -22,7 +28,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+venv/lib/
 lib64/
 parts/
 sdist/

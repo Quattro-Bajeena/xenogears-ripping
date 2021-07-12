@@ -1,8 +1,6 @@
 {
-    "python.pythonPath": "C:\\Users\\motme\\AppData\\Local\\Programs\\Python\\Python39\\python.exe",
+    "python.pythonPath": "F:\\Programowanie\\XenogearsModding\\venv\\Scripts\\python.exe",
     "cmake.sourceDirectory": "${workspaceFolder}/ISO",
-    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
-    "cmake.configureOnOpen": false,
     "python.analysis.extraPaths": [
         "${workspaceFolder}/MapExtraction",
         "D:\\Programy\\Blender\\2.93\\2.93\\scripts\\modules"

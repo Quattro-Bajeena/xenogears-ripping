@@ -18,7 +18,8 @@ def rotate_map():
 	bpy.ops.transform.rotate(ov,
 		value=radians(-90), orient_axis='X', orient_type='GLOBAL',
 	 	orient_matrix=((1, 0, 0), (0, 1 , 0), (0, 0, 1)), orient_matrix_type='GLOBAL',
-	 	constraint_axis=(True, False, False)
+	 	constraint_axis=(True, False, False),
+		center_override=(0,0,0)
 	)
 
 def change_tex_filtering():
