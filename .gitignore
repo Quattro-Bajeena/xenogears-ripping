@@ -9,7 +9,7 @@ Extracted/
 MapExtraction/Include/
 MapExtraction/Scripts/
 pyvenv.cfg
-
+appsettings.json
 ########################## PYTHON IGNORE #######################
 
 # Byte-compiled / optimized / DLL files
