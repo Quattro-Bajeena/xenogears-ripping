@@ -5,6 +5,13 @@
         "${workspaceFolder}/MapExtraction",
         "D:\\Programy\\Blender\\2.93\\2.93\\scripts\\modules"
     ],
-    "python.analysis.typeCheckingMode": "basic"
+    "python.analysis.typeCheckingMode": "basic",
+    "liveSassCompile.settings.formats": [
+        {
+            "format": "expanded",
+            "extensionName": ".css",
+            "savePath": "/MapDisplay/css"
+        }
+    ]
     
 }

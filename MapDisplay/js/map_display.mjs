@@ -1,10 +1,29 @@
-import * as THREE from "https://threejs.org/build/three.module.js";
-import { OrbitControls } from "https://threejs.org/examples/jsm/controls/OrbitControls.js";
-import { GLTFLoader } from "https://threejs.org/examples/jsm/loaders/GLTFLoader.js";
+/// <reference path='three/src/Three.js' />
+// import * as THREE from "https://threejs.org/build/three.module.js";
+// import { OrbitControls } from "https://threejs.org/examples/jsm/controls/OrbitControls.js";
+// import { GLTFLoader } from "https://threejs.org/examples/jsm/loaders/GLTFLoader.js";
 
+import * as THREE from "./three/build/three.module.js";
+import { MapControls, OrbitControls } from "./three/examples/jsm/controls/OrbitControls.js";
+import { GLTFLoader } from "./three/examples/jsm/loaders/GLTFLoader.js";
 
+let level = 729;
 let camera, scene, renderer, map, controls;
 const parent = document.getElementById("render");
+
+const render_controls = document.getElementById("render-controls");
+const texture_filtering_checkbox = document.getElementById("texture-filtering-checkbox");
+const fullscreen_checkbox = document.getElementById("fullscreen-checkbox");
+const controls_list = document.getElementById("controls-list");
+
+texture_filtering_checkbox.addEventListener('change', toggleTextureFiltering);
+fullscreen_checkbox.addEventListener('change', fullScreenToggle);
+document.addEventListener("keydown", fullScreenToggle);
+controls_list.addEventListener("change", changeControls);
+
+
+let minDistance = 1000;
+let maxDistance = 7000;
 
 init();
 render();
@@ -32,7 +51,7 @@ function init(){
 
 
     const loader = new GLTFLoader( loadingManager);
-    const map_url = "/Maps/Converted/level1.glb";
+    const map_url = `/Maps/Converted/level${level}.glb`;
     loader.load(map_url, function(gltf){
         //console.log(gltf);
         
@@ -41,14 +60,9 @@ function init(){
             object.traverse(function(child){
                 if(child instanceof THREE.Mesh){
 
-                    // if(child.material.map != null){
-                    //     child.material.map.magFilter = THREE.NearestFilter;
-                    // }
-
                     child.material.emissive = new THREE.Color( 1,1,1);
                     child.material.emissiveMap = child.material.map;
                     child.material.emissiveIntensity = 1;
-                    //child.material.map = null;
 
                 }
 
@@ -59,12 +73,25 @@ function init(){
     });
 
 
-    controls = new OrbitControls( camera, renderer.domElement );
-    //controls.addEventListener( 'change', render ); // use if there is no animation loop
-    controls.minDistance = 1000;
-    controls.maxDistance = 7000;
-    controls.target.set( 0, 0, 0 );
-    controls.update();
+    // controls= new OrbitControls( camera, renderer.domElement );
+    // controls.minDistance = min_distance;
+    // controls.maxDistance = max_distance;
+    // controls.target.set( 0, 0, 0 );
+    // controls.update();
+
+    controls = new MapControls( camera, renderer.domElement );
+
+
+    controls.enableDamping = false; // an animation loop is required when either damping or auto-rotation are enabled
+    controls.dampingFactor = 0.05;
+
+    controls.screenSpacePanning = false;
+
+    controls.minDistance = minDistance;
+    controls.maxDistance = maxDistance;
+
+    controls.maxPolarAngle = Math.PI / 2;
+
 
     window.addEventListener( 'resize', onWindowResize );
     
@@ -87,6 +114,7 @@ function onWindowResize() {
 function render() {
     requestAnimationFrame( render );
     resizeCanvasToDisplaySize();
+    controls.update();
     renderer.render( scene, camera );
     
 }
@@ -106,5 +134,109 @@ function resizeCanvasToDisplaySize() {
   
       // update any render target sizes here
     }
-  }
+}
+
+function changeControls(event){
+    console.log("change controls");
+    if(event.target.value == "orbit"){
+        setUpOrbitContols(minDistance, maxDistance);
+    }
+    else if(event.target.value == "map"){
+        setUpMapControls(minDistance, maxDistance);
+    }
+}
+
+function setUpOrbitContols(min_distance, max_distance){
+    const orbitControls = new OrbitControls( camera , renderer.domElement);
+    orbitControls.minDistance = min_distance;
+    orbitControls.maxDistance = max_distance;
+    orbitControls.target.set( 0, 0, 0 );
+    orbitControls.update();
+
+    controls.dispose();
+    controls = orbitControls;
+}
+
+function setUpMapControls(min_distance, max_distance){
+    const mapControls = new MapControls( camera , renderer.domElement);
+
+    mapControls.enableDamping = false; // an animation loop is required when either damping or auto-rotation are enabled
+    mapControls.dampingFactor = 0.05;
+
+    mapControls.screenSpacePanning = false;
+
+    mapControls.minDistance = minDistance;
+    mapControls.maxDistance = maxDistance;
+
+    mapControls.maxPolarAngle = Math.PI / 2;
+
+    controls.dispose();
+    controls = mapControls;
+}
+
+
+
+
+
+function toggleTextureFiltering(event){
+    for(const object of map.children){  
+        object.traverse(function(child){
+            if(child instanceof THREE.Mesh){
+
+                if(child.material.map != null){
+
+                    if(event.currentTarget.checked){
+                        child.material.map.magFilter = THREE.LinearFilter;
+                        child.material.map.minFilter = THREE.LinearMipMapLinearFilter; 
+                    }
+                    else{
+                        child.material.map.magFilter = THREE.NearestFilter;
+                        child.material.map.minFilter = THREE.NearestFilter;
+                    }
+                    
+                    child.material.map.needsUpdate = true;
+                    child.material.needsUpdate = true;
+                }
+            }
+
+        });
+    }
+}
+
+
+
+function fullScreenToggle(event) {
+    
+
+    if(event.currentTarget.checked == true ||
+        (event.key == "Escape" && fullscreen_checkbox.checked == false)
+        ){
+        
+        parent.style.position = "fixed";
+        parent.style.left = "0";
+        parent.style.top = "0";
+        parent.style.height = "99vh";
+        parent.style.width = "99vw";
+        renderer.domElement.style.width = "100%";
+        renderer.domElement.style.height = "100%";
+
+        render_controls.style.fontSize = "1.2em";
+        fullscreen_checkbox.checked = true;
+
+
+        resizeCanvasToDisplaySize();
+    }
+    else if(event.currentTarget.checked == false || 
+        (event.key == "Escape" && fullscreen_checkbox.checked == true)
+        ){
+
+        parent.removeAttribute("style");
+        render_controls.removeAttribute("style");
+        fullscreen_checkbox.checked = false;
+
+        resizeCanvasToDisplaySize();
+    }
+    
+    
+};
 
