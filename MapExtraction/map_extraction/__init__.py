@@ -1,2 +1,2 @@
 from .extract_maps import load_and_save_map
-from .convert_map import convert_map_blender
+from .convert_map import convert_map_blender, scale_map_launch

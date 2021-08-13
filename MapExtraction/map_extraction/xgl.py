@@ -20,9 +20,9 @@ from PIL import Image
 from pathlib import Path
 
 def swap_chanles(file):
-    image = Image.open(file).convert("RGB")
-    r, g, b = image.split()
-    swapped = Image.merge('RGB', (b, g, r))
+    image = Image.open(file).convert("RGBA")
+    r, g, b, a = image.split()
+    swapped = Image.merge('RGBA', (b, g, r, a))
     swapped.save(file)
 
 
@@ -952,8 +952,10 @@ def main(*argv):
     diskIndex = 1 # there are disk 1 and disk 2
     dirIndex = 11 # 0-based index
     #fileIndex = int(argv[0]) # 0-based index
-    fileIndex = 652
-    archivePath = os.path.join("STRIPCD%i" % diskIndex, "%i" % dirIndex, "%04d" % (fileIndex * 2))
+    fileIndex = 49
+    #archivePath = os.path.join("STRIPCD%i" % diskIndex, "%i" % dirIndex, "%04d" % (fileIndex * 2))
+    iso_folder = Path(__file__).absolute().parent.parent.parent / "ISOExtraction"
+    archivePath = iso_folder / Path(f"STRIPCD{diskIndex}") / str(dirIndex) / f"{(fileIndex*2):04d}"
 
     f = sloppy_open(archivePath)
     archiveData = f.read()
@@ -967,7 +969,8 @@ def main(*argv):
     modelData = getData(archiveData, 2)
 
     print("loading texture...")
-    texturePath = os.path.join("STRIPCD%i" % diskIndex, "%i" % dirIndex, "%04d" % (fileIndex * 2 + 1))
+    #texturePath = os.path.join("STRIPCD%i" % diskIndex, "%i" % dirIndex, "%04d" % (fileIndex * 2 + 1))
+    texturePath = iso_folder / Path(f"STRIPCD{diskIndex}") / str(dirIndex) / f"{(fileIndex*2+1):04d}"
 
     f = sloppy_open(texturePath)
     textureData = f.read()
@@ -1044,7 +1047,7 @@ def main(*argv):
                     else:
                         glPolygonMode(GL_FRONT, GL_FILL)
                 elif event.key == pygame.K_c:
-                    saveModel("level%i.dae" % fileIndex, model)
+                    saveModel(Path(f"level{fileIndex}.dae"), model)
                 elif event.type == KEYUP:
                     if event.key == pygame.K_UP:
                         key_up = False

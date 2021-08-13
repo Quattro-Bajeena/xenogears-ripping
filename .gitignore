@@ -10,6 +10,10 @@ MapExtraction/Include/
 MapExtraction/Scripts/
 pyvenv.cfg
 appsettings.json
+Maps/
+*.zip
+*.blend
+*.blend1
 ########################## PYTHON IGNORE #######################
 
 # Byte-compiled / optimized / DLL files
