@@ -19,6 +19,8 @@ from pygame.locals import *
 from PIL import Image
 from pathlib import Path
 
+
+
 def swap_chanles(file):
     image = Image.open(file).convert("RGBA")
     r, g, b, a = image.split()
@@ -947,12 +949,155 @@ def saveModel(path : Path, model):
 
     print("done...")
 
-def main(*argv):
+
+import vectormath as vmath
+import numpy as np
+
+class XenogearsMapViewer:
+
+    def __init__(self, model):
+        self.model = model
+        self.initialize()
+
+
+    def initialize(self):
+        pygame.init()
+
+        resolution = {'x':720, 'y' : 560}
+
+        screen = pygame.display.set_mode((resolution['x'], resolution['y']), HWSURFACE|DOUBLEBUF|OPENGL)
+
+        glViewport(0, 0, resolution['x'],resolution['y'])
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        self.kFOVy = 0.57735
+        self.kZNear = 10.0
+        self.kZFar = 10000.0
+        self.aspect = (resolution['x'] / resolution['y']) * self.kZNear * self.kFOVy
+        glFrustum(-self.aspect, self.aspect, -(self.kZNear * self.kFOVy), (self.kZNear * self.kFOVy), self.kZNear, self.kZFar)
+
+        glEnable(GL_DEPTH_TEST)
+        glDepthFunc(GL_LEQUAL)
+        glDisable(GL_CULL_FACE)
+        glDisable(GL_LIGHTING)
+        glDisable(GL_BLEND)
+        glPolygonMode(GL_FRONT, GL_FILL)
+        glPolygonMode(GL_BACK, GL_LINE)
+
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE)
+        self.wireframe = False
+
+        self.clock = pygame.time.Clock()
+        self.rot_x = 0.0
+        self.rot_y = 0.0
+        self.pos_x = 0.0
+        self.pos_y = 0
+        self.pos_z = -2000
+        self.object = OpenGLObject(self.model)
+
+    def main_loop(self):
+        while True:
+            self.events()
+            self.input()
+            self.render()
+
+    def rotation_matrix(self, axis, theta):
+        """
+        Return the rotation matrix associated with counterclockwise rotation about
+        the given axis by theta radians.
+        """
+        axis = np.asarray(axis)
+        axis = axis / math.sqrt(np.dot(axis, axis))
+        a = math.cos(theta / 2.0)
+        b, c, d = -axis * math.sin(theta / 2.0)
+        aa, bb, cc, dd = a * a, b * b, c * c, d * d
+        bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
+        return np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
+                        [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
+                        [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])      
+
+    def input(self):
+        keys = pygame.key.get_pressed()
+
+        rotate_speed = 1.0
+        if keys[pygame.K_UP]:
+            self.rot_x -= rotate_speed
+        elif keys[pygame.K_DOWN]:
+            self.rot_x += rotate_speed
+
+        if keys[pygame.K_LEFT]:
+            self.rot_y -= rotate_speed
+        elif keys[pygame.K_RIGHT]:
+            self.rot_y += rotate_speed
+
+        
+
+        speed = 32
+        if keys[pygame.K_w]:
+            sx = math.sin(self.rot_x * math.pi * 2.0 / 256.0)
+            cx = -math.cos(self.rot_x * math.pi * 2.0 / 256.0)
+            sy = math.sin(self.rot_y * math.pi * 2.0 / 256.0)
+            cy = -math.cos(self.rot_y * math.pi * 2.0 / 256.0)
+            self.pos_x += sy * cx * speed
+            self.pos_y += sx * speed
+            self.pos_z += cy * cx * speed
+        elif keys[pygame.K_s]:
+            sx = math.sin(self.rot_x * math.pi * 2.0 / 256.0)
+            cx = -math.cos(self.rot_x * math.pi * 2.0 / 256.0)
+            sy = math.sin(self.rot_y * math.pi * 2.0 / 256.0)
+            cy = -math.cos(self.rot_y * math.pi * 2.0 / 256.0)
+            self.pos_x -= sy * cx * speed
+            self.pos_y -= sx * speed
+            self.pos_z -= cy * cx * speed
+        elif keys[pygame.K_d]:
+            right_vector = np.dot(self.rotation_matrix([1,1,0], math.pi / 2), [self.rot_x, self.rot_y, 0] )
+            self.pos_x += right_vector[0] * speed
+            self.pos_y += right_vector[1] * speed
+            self.pos_z += right_vector[2] * speed
+            
+
+    def events(self):
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                exit()
+            elif event.type == KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    exit()
+                elif event.key == pygame.K_e:
+                    wireframe = not self.wireframe
+                    if wireframe:
+                        glPolygonMode(GL_FRONT, GL_LINE)
+                    else:
+                        glPolygonMode(GL_FRONT, GL_FILL)
+                # elif event.key == pygame.K_c:
+                #     saveModel(Path(f"level{fileIndex}.dae"), model)
+
+    def render(self):
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        glFrustum(-self.aspect, self.aspect, -(self.kZNear * self.kFOVy), (self.kZNear * self.kFOVy), self.kZNear, self.kZFar)
+
+        glRotatef(self.rot_x * 360.0 / 256.0, 1.0, 0.0, 0.0)
+        glRotatef(self.rot_y * 360.0 / 256.0, 0.0, 1.0, 0.0)
+        glTranslatef(self.pos_x, self.pos_y, self.pos_z)
+
+        glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()
+
+        self.object.draw()
+
+        self.clock.tick(60)
+        pygame.display.flip()
+
+
+if __name__ == "__main__":
     print("loading archive...")
     diskIndex = 1 # there are disk 1 and disk 2
     dirIndex = 11 # 0-based index
     #fileIndex = int(argv[0]) # 0-based index
-    fileIndex = 49
+    fileIndex = 1
     #archivePath = os.path.join("STRIPCD%i" % diskIndex, "%i" % dirIndex, "%04d" % (fileIndex * 2))
     iso_folder = Path(__file__).absolute().parent.parent.parent / "ISOExtraction"
     archivePath = iso_folder / Path(f"STRIPCD{diskIndex}") / str(dirIndex) / f"{(fileIndex*2):04d}"
@@ -964,7 +1109,7 @@ def main(*argv):
     if archiveData[:4] == "It's":
     # file was removed from disk image
         print("This file was removed from the disk image. Most likely it is a room that is not reachable any more.")
-        return 0
+        exit()
 
     modelData = getData(archiveData, 2)
 
@@ -986,131 +1131,7 @@ def main(*argv):
     model["nodes"] = getNodes(archiveData)
 
     print("starting OpenGL...")
-    pygame.init()
 
-    resolution = {'x':720, 'y' : 560}
-    
-    screen = pygame.display.set_mode((resolution['x'], resolution['y']), HWSURFACE|DOUBLEBUF|OPENGL)
 
-    glViewport(0, 0, resolution['x'],resolution['y'])
-    glMatrixMode(GL_PROJECTION)
-    glLoadIdentity()
-    kFOVy = 0.57735
-    kZNear = 10.0
-    kZFar = 10000.0
-    aspect = (resolution['x'] / resolution['y']) * kZNear * kFOVy
-    glFrustum(-aspect, aspect, -(kZNear * kFOVy), (kZNear * kFOVy), kZNear, kZFar)
-
-    glEnable(GL_DEPTH_TEST)
-    glDepthFunc(GL_LEQUAL)
-    glDisable(GL_CULL_FACE)
-    glDisable(GL_LIGHTING)
-    glDisable(GL_BLEND)
-    glPolygonMode(GL_FRONT, GL_FILL)
-    glPolygonMode(GL_BACK, GL_LINE)
-
-    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE)
-    wireframe = False
-
-    clock = pygame.time.Clock()
-    rot_x = 0.0
-    rot_y = 0.0
-    pos_x = 0.0
-    pos_y = 0
-    pos_z = -2000
-    object = OpenGLObject(model)
-    while True:
-        key_up = key_down = key_left = key_right = key_front = key_back = False
-
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                exit()
-            elif event.type == KEYDOWN:
-                if event.key == pygame.K_UP:
-                    key_up = True
-                elif event.key == pygame.K_DOWN:
-                    key_down = True
-                elif event.key == pygame.K_LEFT:
-                    key_left = True
-                elif event.key == pygame.K_RIGHT:
-                    key_right = True
-                elif event.key == pygame.K_w:
-                    key_front = True
-                elif event.key == pygame.K_s:
-                    key_back = True
-                elif event.key == pygame.K_ESCAPE:
-                    exit()
-                elif event.key == pygame.K_d:
-                    wireframe = not wireframe
-                    if wireframe:
-                        glPolygonMode(GL_FRONT, GL_LINE)
-                    else:
-                        glPolygonMode(GL_FRONT, GL_FILL)
-                elif event.key == pygame.K_c:
-                    saveModel(Path(f"level{fileIndex}.dae"), model)
-                elif event.type == KEYUP:
-                    if event.key == pygame.K_UP:
-                        key_up = False
-                    elif event.key == pygame.K_DOWN:
-                        key_down = False
-                    elif event.key == pygame.K_LEFT:
-                        key_left = False
-                    elif event.key == pygame.K_RIGHT:
-                        key_right = False
-                    elif event.key == pygame.K_w:
-                        key_front = False
-                    elif event.key == pygame.K_s:
-                        key_back = False
-        rotate_speed = 3.0
-        if key_up:
-            rot_x -= rotate_speed
-        elif key_down:
-            rot_x += rotate_speed
-
-        if key_left:
-            rot_y -= rotate_speed
-        elif key_right:
-            rot_y += rotate_speed
-
-        speed = 64
-        if key_front:
-            sx = math.sin(rot_x * math.pi * 2.0 / 256.0)
-            cx = -math.cos(rot_x * math.pi * 2.0 / 256.0)
-            sy = math.sin(rot_y * math.pi * 2.0 / 256.0)
-            cy = -math.cos(rot_y * math.pi * 2.0 / 256.0)
-            pos_x += sy * cx * speed
-            pos_y += sx * speed
-            pos_z += cy * cx * speed
-        elif key_back:
-            sx = math.sin(rot_x * math.pi * 2.0 / 256.0)
-            cx = -math.cos(rot_x * math.pi * 2.0 / 256.0)
-            sy = math.sin(rot_y * math.pi * 2.0 / 256.0)
-            cy = -math.cos(rot_y * math.pi * 2.0 / 256.0)
-            pos_x -= sy * cx * speed
-            pos_y -= sx * speed
-            pos_z -= cy * cx * speed
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        glFrustum(-aspect, aspect, -(kZNear * kFOVy), (kZNear * kFOVy), kZNear, kZFar)
-        if False:
-            glTranslatef(0, 0, -2000)
-            glRotatef(rot_y * 360.0 / 256.0, 0.0, 1.0, 0.0)
-            glRotatef(rot_x * 360.0 / 256.0, 1.0, 0.0, 0.0)
-        else:
-            glRotatef(rot_x * 360.0 / 256.0, 1.0, 0.0, 0.0)
-            glRotatef(rot_y * 360.0 / 256.0, 0.0, 1.0, 0.0)
-            glTranslatef(pos_x, pos_y, pos_z)
-
-        glMatrixMode(GL_MODELVIEW)
-        glLoadIdentity()
-
-        object.draw()
-
-        clock.tick(60)
-        pygame.display.flip()
-
-if __name__ == "__main__":
-    main(*sys.argv[1:])
+    map_viewer = XenogearsMapViewer(model)
+    map_viewer.main_loop()

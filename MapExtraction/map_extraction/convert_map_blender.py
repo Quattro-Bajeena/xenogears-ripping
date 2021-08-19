@@ -22,6 +22,19 @@ def rotate_map():
 		center_override=(0,0,0)
 	)
 
+def scale_map():
+	bpy.ops.object.select_all(action='SELECT')
+
+	ov = bpy.context.copy()
+	ov['area']=[a for a in bpy.context.screen.areas if a.type=="VIEW_3D"][0]
+	
+	bpy.ops.transform.resize(ov,
+        value=(0.04, 0.04, 0.04), orient_type='GLOBAL',
+        orient_matrix=((1, 0, 0), (0, 1 , 0), (0, 0, 1)), orient_matrix_type='GLOBAL',
+        constraint_axis=(True, False, False),
+        center_override=(0,0,0)
+    )
+
 def change_tex_filtering():
 	print("Changing texture filtering")
 	for mat in bpy.data.materials:
