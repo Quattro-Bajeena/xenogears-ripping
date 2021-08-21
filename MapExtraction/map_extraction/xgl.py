@@ -401,7 +401,7 @@ class OpenGLObject:
                 texIndex = glGenTextures(1)
                 glBindTexture(GL_TEXTURE_2D, texIndex)
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, t)
-                if True:
+                if False:
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
                 else:
@@ -952,6 +952,8 @@ def saveModel(path : Path, model):
 
 import vectormath as vmath
 import numpy as np
+import vectors
+from math import sin, cos, radians
 
 class XenogearsMapViewer:
 
@@ -963,7 +965,7 @@ class XenogearsMapViewer:
     def initialize(self):
         pygame.init()
 
-        resolution = {'x':720, 'y' : 560}
+        resolution = {'x':1080, 'y' : 1080}
 
         screen = pygame.display.set_mode((resolution['x'], resolution['y']), HWSURFACE|DOUBLEBUF|OPENGL)
 
@@ -983,6 +985,7 @@ class XenogearsMapViewer:
         glDisable(GL_BLEND)
         glPolygonMode(GL_FRONT, GL_FILL)
         glPolygonMode(GL_BACK, GL_LINE)
+        
 
         glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE)
         self.wireframe = False
@@ -995,28 +998,19 @@ class XenogearsMapViewer:
         self.pos_z = -2000
         self.object = OpenGLObject(self.model)
 
+        self.SPEED = 32
+        self.LOOK_SPEED = 0.2
+
+
     def main_loop(self):
         while True:
             self.events()
             self.input()
-            self.render()
-
-    def rotation_matrix(self, axis, theta):
-        """
-        Return the rotation matrix associated with counterclockwise rotation about
-        the given axis by theta radians.
-        """
-        axis = np.asarray(axis)
-        axis = axis / math.sqrt(np.dot(axis, axis))
-        a = math.cos(theta / 2.0)
-        b, c, d = -axis * math.sin(theta / 2.0)
-        aa, bb, cc, dd = a * a, b * b, c * c, d * d
-        bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
-        return np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
-                        [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
-                        [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])      
+            self.render()   
 
     def input(self):
+        mouse_delta = pygame.mouse.get_rel()
+        print(mouse_delta)
         keys = pygame.key.get_pressed()
 
         rotate_speed = 1.0
@@ -1027,33 +1021,58 @@ class XenogearsMapViewer:
 
         if keys[pygame.K_LEFT]:
             self.rot_y -= rotate_speed
+
         elif keys[pygame.K_RIGHT]:
             self.rot_y += rotate_speed
 
         
+        self.rot_x += mouse_delta[1] * self.LOOK_SPEED
+        self.rot_y += mouse_delta[0] * self.LOOK_SPEED
+        
+        
+        rot_x_rad = radians(self.rot_x)
+        rot_y_rad = radians(self.rot_y)
+        rot_y_right_rad = radians(self.rot_y + 90)
 
-        speed = 32
         if keys[pygame.K_w]:
-            sx = math.sin(self.rot_x * math.pi * 2.0 / 256.0)
-            cx = -math.cos(self.rot_x * math.pi * 2.0 / 256.0)
-            sy = math.sin(self.rot_y * math.pi * 2.0 / 256.0)
-            cy = -math.cos(self.rot_y * math.pi * 2.0 / 256.0)
-            self.pos_x += sy * cx * speed
-            self.pos_y += sx * speed
-            self.pos_z += cy * cx * speed
+            v_x = sin(rot_y_rad) * -cos(rot_x_rad)
+            v_y = sin(rot_x_rad)
+            v_z = -cos(rot_y_rad) * -cos(rot_x_rad)
+            forward = [v_x, v_y, v_z]
+
+            self.pos_x += forward[0] * self.SPEED
+            self.pos_y += forward[1]  * self.SPEED
+            self.pos_z += forward[2]  * self.SPEED
+
         elif keys[pygame.K_s]:
-            sx = math.sin(self.rot_x * math.pi * 2.0 / 256.0)
-            cx = -math.cos(self.rot_x * math.pi * 2.0 / 256.0)
-            sy = math.sin(self.rot_y * math.pi * 2.0 / 256.0)
-            cy = -math.cos(self.rot_y * math.pi * 2.0 / 256.0)
-            self.pos_x -= sy * cx * speed
-            self.pos_y -= sx * speed
-            self.pos_z -= cy * cx * speed
-        elif keys[pygame.K_d]:
-            right_vector = np.dot(self.rotation_matrix([1,1,0], math.pi / 2), [self.rot_x, self.rot_y, 0] )
-            self.pos_x += right_vector[0] * speed
-            self.pos_y += right_vector[1] * speed
-            self.pos_z += right_vector[2] * speed
+            v_x = sin(rot_y_rad) * -cos(rot_x_rad)
+            v_y = sin(rot_x_rad)
+            v_z = -cos(rot_y_rad) * -cos(rot_x_rad)
+            forward = [v_x, v_y, v_z]
+
+            self.pos_x -= forward[0] * self.SPEED
+            self.pos_y -= forward[1]  * self.SPEED
+            self.pos_z -= forward[2]  * self.SPEED
+
+        if keys[pygame.K_d]:
+            r_x = sin(rot_y_right_rad) * -cos(0)
+            r_y = sin(0)
+            r_z = -cos(rot_y_right_rad) * -cos(0)
+            right = [r_x, r_y, r_z]
+
+            self.pos_x += right[0] * self.SPEED
+            self.pos_y += right[1] * self.SPEED
+            self.pos_z += right[2] * self.SPEED
+
+        elif keys[pygame.K_a]:
+            r_x = sin(rot_y_right_rad) * -cos(0)
+            r_y = sin(0)
+            r_z = -cos(rot_y_right_rad) * -cos(0)
+            right = [r_x, r_y, r_z]
+
+            self.pos_x -= right[0] * self.SPEED
+            self.pos_y -= right[1] * self.SPEED
+            self.pos_z -= right[2] * self.SPEED
             
 
     def events(self):
@@ -1064,8 +1083,8 @@ class XenogearsMapViewer:
                 if event.key == pygame.K_ESCAPE:
                     exit()
                 elif event.key == pygame.K_e:
-                    wireframe = not self.wireframe
-                    if wireframe:
+                    self.wireframe = not self.wireframe
+                    if self.wireframe:
                         glPolygonMode(GL_FRONT, GL_LINE)
                     else:
                         glPolygonMode(GL_FRONT, GL_FILL)
@@ -1079,8 +1098,8 @@ class XenogearsMapViewer:
         glLoadIdentity()
         glFrustum(-self.aspect, self.aspect, -(self.kZNear * self.kFOVy), (self.kZNear * self.kFOVy), self.kZNear, self.kZFar)
 
-        glRotatef(self.rot_x * 360.0 / 256.0, 1.0, 0.0, 0.0)
-        glRotatef(self.rot_y * 360.0 / 256.0, 0.0, 1.0, 0.0)
+        glRotatef(self.rot_x , 1.0, 0.0, 0.0)
+        glRotatef(self.rot_y , 0.0, 1.0, 0.0)
         glTranslatef(self.pos_x, self.pos_y, self.pos_z)
 
         glMatrixMode(GL_MODELVIEW)
@@ -1097,7 +1116,8 @@ if __name__ == "__main__":
     diskIndex = 1 # there are disk 1 and disk 2
     dirIndex = 11 # 0-based index
     #fileIndex = int(argv[0]) # 0-based index
-    fileIndex = 1
+    fileIndex = 729
+
     #archivePath = os.path.join("STRIPCD%i" % diskIndex, "%i" % dirIndex, "%04d" % (fileIndex * 2))
     iso_folder = Path(__file__).absolute().parent.parent.parent / "ISOExtraction"
     archivePath = iso_folder / Path(f"STRIPCD{diskIndex}") / str(dirIndex) / f"{(fileIndex*2):04d}"
