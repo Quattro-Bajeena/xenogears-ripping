@@ -8,6 +8,7 @@ from io import TextIOWrapper
 import sys, struct, array, math, os
 import os.path
 from typing import BinaryIO
+from math import sin, cos, radians
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -950,12 +951,10 @@ def saveModel(path : Path, model):
     print("done...")
 
 
-import vectormath as vmath
-import numpy as np
-import vectors
-from math import sin, cos, radians
 
-class XenogearsMapViewer:
+
+
+class MapViewer:
 
     def __init__(self, model):
         self.model = model
@@ -963,11 +962,14 @@ class XenogearsMapViewer:
 
 
     def initialize(self):
+        print("starting OpenGL...")
         pygame.init()
 
         resolution = {'x':1080, 'y' : 1080}
 
         screen = pygame.display.set_mode((resolution['x'], resolution['y']), HWSURFACE|DOUBLEBUF|OPENGL)
+        pygame.event.set_grab(True)
+        pygame.mouse.set_visible(False)
 
         glViewport(0, 0, resolution['x'],resolution['y'])
         glMatrixMode(GL_PROJECTION)
@@ -998,9 +1000,12 @@ class XenogearsMapViewer:
         self.pos_z = -2000
         self.object = OpenGLObject(self.model)
 
-        self.SPEED = 32
+        
+        self.NORMAL_SPEED = 25
+        self.SPRINT_SPEED = 70
         self.LOOK_SPEED = 0.2
 
+        self.speed = self.NORMAL_SPEED
 
     def main_loop(self):
         while True:
@@ -1010,8 +1015,12 @@ class XenogearsMapViewer:
 
     def input(self):
         mouse_delta = pygame.mouse.get_rel()
-        print(mouse_delta)
         keys = pygame.key.get_pressed()
+
+        if keys[pygame.K_LSHIFT]:
+            self.speed = self.SPRINT_SPEED
+        else:
+            self.speed = self.NORMAL_SPEED
 
         rotate_speed = 1.0
         if keys[pygame.K_UP]:
@@ -1040,9 +1049,9 @@ class XenogearsMapViewer:
             v_z = -cos(rot_y_rad) * -cos(rot_x_rad)
             forward = [v_x, v_y, v_z]
 
-            self.pos_x += forward[0] * self.SPEED
-            self.pos_y += forward[1]  * self.SPEED
-            self.pos_z += forward[2]  * self.SPEED
+            self.pos_x += forward[0] * self.speed
+            self.pos_y += forward[1]  * self.speed
+            self.pos_z += forward[2]  * self.speed
 
         elif keys[pygame.K_s]:
             v_x = sin(rot_y_rad) * -cos(rot_x_rad)
@@ -1050,9 +1059,9 @@ class XenogearsMapViewer:
             v_z = -cos(rot_y_rad) * -cos(rot_x_rad)
             forward = [v_x, v_y, v_z]
 
-            self.pos_x -= forward[0] * self.SPEED
-            self.pos_y -= forward[1]  * self.SPEED
-            self.pos_z -= forward[2]  * self.SPEED
+            self.pos_x -= forward[0] * self.speed
+            self.pos_y -= forward[1]  * self.speed
+            self.pos_z -= forward[2]  * self.speed
 
         if keys[pygame.K_d]:
             r_x = sin(rot_y_right_rad) * -cos(0)
@@ -1060,9 +1069,9 @@ class XenogearsMapViewer:
             r_z = -cos(rot_y_right_rad) * -cos(0)
             right = [r_x, r_y, r_z]
 
-            self.pos_x += right[0] * self.SPEED
-            self.pos_y += right[1] * self.SPEED
-            self.pos_z += right[2] * self.SPEED
+            self.pos_x += right[0] * self.speed
+            self.pos_y += right[1] * self.speed
+            self.pos_z += right[2] * self.speed
 
         elif keys[pygame.K_a]:
             r_x = sin(rot_y_right_rad) * -cos(0)
@@ -1070,9 +1079,9 @@ class XenogearsMapViewer:
             r_z = -cos(rot_y_right_rad) * -cos(0)
             right = [r_x, r_y, r_z]
 
-            self.pos_x -= right[0] * self.SPEED
-            self.pos_y -= right[1] * self.SPEED
-            self.pos_z -= right[2] * self.SPEED
+            self.pos_x -= right[0] * self.speed
+            self.pos_y -= right[1] * self.speed
+            self.pos_z -= right[2] * self.speed
             
 
     def events(self):
@@ -1111,12 +1120,10 @@ class XenogearsMapViewer:
         pygame.display.flip()
 
 
-if __name__ == "__main__":
+def load_level(fileIndex):
     print("loading archive...")
     diskIndex = 1 # there are disk 1 and disk 2
     dirIndex = 11 # 0-based index
-    #fileIndex = int(argv[0]) # 0-based index
-    fileIndex = 729
 
     #archivePath = os.path.join("STRIPCD%i" % diskIndex, "%i" % dirIndex, "%04d" % (fileIndex * 2))
     iso_folder = Path(__file__).absolute().parent.parent.parent / "ISOExtraction"
@@ -1150,8 +1157,6 @@ if __name__ == "__main__":
     print("getting nodes...")
     model["nodes"] = getNodes(archiveData)
 
-    print("starting OpenGL...")
+    return model
 
 
-    map_viewer = XenogearsMapViewer(model)
-    map_viewer.main_loop()

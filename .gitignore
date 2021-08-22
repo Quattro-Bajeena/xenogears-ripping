@@ -14,6 +14,7 @@ Maps/
 *.zip
 *.blend
 *.blend1
+*.png
 ########################## PYTHON IGNORE #######################
 
 # Byte-compiled / optimized / DLL files
