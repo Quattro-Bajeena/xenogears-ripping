@@ -34,8 +34,11 @@ public class ExportXenogears : ScriptableWizard
 
 		var exporter = ScriptableObject.CreateInstance<OBJExporter>();
 
-        string[] scene_assets = AssetDatabase.FindAssets("*", new[] { "Assets/SceneModel/Scene" });
-        string[] scene_paths = scene_assets.Select( scene_guid => AssetDatabase.GUIDToAssetPath(scene_guid)).ToArray();
+		//string[] scene_assets = AssetDatabase.FindAssets("*", new[] { "Assets/SceneModel/Scene" });
+		//string[] scene_assets = AssetDatabase.FindAssets("*", new[] { "Assets/Stage/Scene" });
+		string[] scene_assets = AssetDatabase.FindAssets("*", new[] { "Assets/Field/Scene" });
+
+		string[] scene_paths = scene_assets.Select( scene_guid => AssetDatabase.GUIDToAssetPath(scene_guid)).ToArray();
 
 		foreach (string scene_path in scene_paths)
 		{
