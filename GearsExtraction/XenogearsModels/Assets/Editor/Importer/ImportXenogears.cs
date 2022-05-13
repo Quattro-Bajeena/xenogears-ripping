@@ -1674,20 +1674,24 @@ public class ImportXenogears : EditorWindow {
 	}
 
 	static void importTerrain(uint fileIndex) {
+		
+
 		// Create Terrain Root
 		string terrainGuid = AssetDatabase.AssetPathToGUID (ToUnityPath(Path.Combine("Assets", "Worldmap")));
 		if (terrainGuid.Length == 0) {
 			terrainGuid = AssetDatabase.CreateFolder("Assets", "Worldmap");
 		} 
 		string terrainRoot = AssetDatabase.GUIDToAssetPath(terrainGuid);
-		
+
+
 		// Create Model Root
 		string terrainModelGuid = AssetDatabase.AssetPathToGUID (ToUnityPath(Path.Combine(terrainRoot, "Model")));
 		if (terrainModelGuid.Length == 0) {
 			terrainModelGuid = AssetDatabase.CreateFolder(terrainRoot, "Model");
 		} 
 		string terrainModelRoot = AssetDatabase.GUIDToAssetPath(terrainModelGuid);
-		
+
+
 		// Create Scene Root
 		string terrainSceneGuid = AssetDatabase.AssetPathToGUID (ToUnityPath(Path.Combine(terrainRoot, "Scene")));
 		if (terrainSceneGuid.Length == 0) {
@@ -1703,15 +1707,19 @@ public class ImportXenogears : EditorWindow {
 		string filePath = ToUnityPath(Path.Combine( terrainPath, "file" + 8 + ".bin"));
 		string texturePath = ToUnityPath(Path.Combine( terrainPath, "file" + 1 + ".bin"));
 
+
 		EditorApplication.NewScene();
 
-		UnityEngine.Object prefab = PrefabUtility.CreateEmptyPrefab (ToUnityPath(Path.Combine(terrainModelRoot, "worldmap" + fileIndex + ".prefab")));
+		var prefabPath = ToUnityPath(Path.Combine(terrainModelRoot, "worldmap" + fileIndex + ".prefab"));
+		UnityEngine.Object prefab = PrefabUtility.CreateEmptyPrefab (prefabPath);
 		
 		byte[] data = File.ReadAllBytes(filePath);
 		byte[] textureData = loadLzs(texturePath);
 		SplatPrototype[] splatPrototypes = new SplatPrototype[16];
-		
-		for(uint ytex=0;ytex<4; ytex++) {
+		TerrainLayer[] terrainLayer = new TerrainLayer[16];
+
+
+		for (uint ytex=0;ytex<4; ytex++) {
 			for(uint xtex=0; xtex<4; xtex++) {
 				Color[] image = new Color[1024*1024];
 				for (uint i=0; i<4; i++) {
@@ -1745,6 +1753,7 @@ public class ImportXenogears : EditorWindow {
 										float r = (float)((col    ) & 31) / 31.0f;
 										float g = (float)((col >>  5) & 31) / 31.0f;
 										float b = (float)((col >> 10) & 31) / 31.0f;
+
 										image[((j*16+x)*16+xx) * 1024 + ((i*16+y)*16+yy)] = new Color(r, g, b, 1.0f);
 									}
 								}
@@ -1764,8 +1773,10 @@ public class ImportXenogears : EditorWindow {
 				splatPrototype.tileOffset = new Vector2(-ytex*64, -xtex*64); 
 				splatPrototype.tileSize = new Vector2(64, 64);
 				splatPrototypes[ytex*4+xtex] = splatPrototype;
+
 			}
 		}
+
 
 		float[,] heights = new float[256,256];
 		for (uint i=0; i<16; i++) {
@@ -1794,7 +1805,7 @@ public class ImportXenogears : EditorWindow {
 				}
 			}
 		}
-		
+
 		TerrainData terrainData = new TerrainData();
 		terrainData.name = "terrain";
 		terrainData.heightmapResolution = 256;
@@ -1803,6 +1814,9 @@ public class ImportXenogears : EditorWindow {
 		terrainData.alphamapResolution = 64;
 		terrainData.splatPrototypes = splatPrototypes;
 		
+		//terrainData.terrainLayers = terrainLayer;
+
+
 		AssetDatabase.AddObjectToAsset(terrainData, prefab);
 
 		GameObject gameObject = new GameObject("worlmap");
@@ -1811,11 +1825,13 @@ public class ImportXenogears : EditorWindow {
 		TerrainCollider terrainCollider = (TerrainCollider)gameObject.AddComponent(typeof(TerrainCollider));
 		terrainCollider.terrainData = terrainData;
 
-		PrefabUtility.ReplacePrefab(gameObject, prefab, ReplacePrefabOptions.ConnectToPrefab);
+		//PrefabUtility.ReplacePrefab(gameObject, prefab, ReplacePrefabOptions.ConnectToPrefab);
+
 		
 		// Need to save assets or the weights don't work
-		AssetDatabase.SaveAssets();
-		
+		//AssetDatabase.SaveAssets();
+
+
 		// Blend the textures
 		float[, ,] splatmapData = new float [ terrainData.alphamapWidth, terrainData.alphamapHeight, terrainData.alphamapLayers];
 		int dw = terrainData.alphamapWidth / 4;
@@ -1831,7 +1847,8 @@ public class ImportXenogears : EditorWindow {
 		terrainData.SetAlphamaps(0, 0, splatmapData);
 
 		RenderSettings.ambientLight = Color.white;
-		
+
+
 		EditorApplication.SaveScene(ToUnityPath(Path.Combine(terrainSceneRoot, "worldmap" + fileIndex + ".unity")));
 	}
 	
@@ -2249,61 +2266,63 @@ public class ImportXenogears : EditorWindow {
 	void Update() {
 		if (doExport) {
 			try {
-				if (exportDiscs) {
-					importDisc(1, disc1);
-					importDisc(2, disc2);
-					exportDiscs = false;
-					EditorPrefs.SetInt("XGDiscsVersion", discsVersion);
-					EditorPrefs.SetString("XGDisc1", disc1);
-					EditorPrefs.SetString("XGDisc2", disc2);
-				}
-				if (exportField) {
+				importTerrain(0);
+
+	//			if (exportDiscs) {
+	//				importDisc(1, disc1);
+	//				importDisc(2, disc2);
+	//				exportDiscs = false;
+	//				EditorPrefs.SetInt("XGDiscsVersion", discsVersion);
+	//				EditorPrefs.SetString("XGDisc1", disc1);
+	//				EditorPrefs.SetString("XGDisc2", disc2);
+	//			}
+	//			if (exportField) {
 					
-					for(uint i=0; i<730; i++) {
-						importField (i);
-					}
-					exportField = false;
-					EditorPrefs.SetInt("XGFieldVersion", fieldVersion);
+	//				for(uint i=0; i<730; i++) {
+	//					importField (i);
+	//				}
+	//				exportField = false;
+	//				EditorPrefs.SetInt("XGFieldVersion", fieldVersion);
 					
-					// importField (95);
-				}
-				if (exportStage) {
-					for(uint i=0; i<75; i++) {
-						importStage (i);
-					}
-					exportStage = false;
-					EditorPrefs.SetInt("XGExportStage", stageVersion);
-	//					importStage (20);
-				}
-				if (exportTerrain) {
-					for(uint i=0; i<17; i++) {
-						importTerrain (i);
-					}
-					exportTerrain = false;
-					EditorPrefs.SetInt("XGExportTerrain", terrainVersion);
-				}
-				if (exportHeads) {
-					for(int i=0; i<91; i++) {
-						importTim(1, 9, i, "Heads");
-					}
-					exportHeads = false;
-					EditorPrefs.SetInt("XGExportHeads", headsVersion);
-				}
-				if (exportSlides) {
-					for(int i=0; i<88; i++) {
-						importTim(1, 14, i, "Slides");
-					}
-					exportSlides = false;
-					EditorPrefs.SetInt("XGExportSlides", slidesVersion);
-				}
-				if (exportSceneModel) {
-					for(uint i=0; i<72; i++) {
-						importSceneModel(i);
-					}
-					exportSceneModel = false;
-					EditorPrefs.SetInt("XGExportSceneModel", sceneVersion);
-	//				importSceneModel(0);
-				}
+	//				// importField (95);
+	//			}
+	//			if (exportStage) {
+	//				for(uint i=0; i<75; i++) {
+	//					importStage (i);
+	//				}
+	//				exportStage = false;
+	//				EditorPrefs.SetInt("XGExportStage", stageVersion);
+	////					importStage (20);
+	//			}
+	//			if (exportTerrain) {
+	//				for(uint i=0; i<17; i++) {
+	//					importTerrain (i);
+	//				}
+	//				exportTerrain = false;
+	//				EditorPrefs.SetInt("XGExportTerrain", terrainVersion);
+	//			}
+	//			if (exportHeads) {
+	//				for(int i=0; i<91; i++) {
+	//					importTim(1, 9, i, "Heads");
+	//				}
+	//				exportHeads = false;
+	//				EditorPrefs.SetInt("XGExportHeads", headsVersion);
+	//			}
+	//			if (exportSlides) {
+	//				for(int i=0; i<88; i++) {
+	//					importTim(1, 14, i, "Slides");
+	//				}
+	//				exportSlides = false;
+	//				EditorPrefs.SetInt("XGExportSlides", slidesVersion);
+	//			}
+	//			if (exportSceneModel) {
+	//				for(uint i=0; i<72; i++) {
+	//					importSceneModel(i);
+	//				}
+	//				exportSceneModel = false;
+	//				EditorPrefs.SetInt("XGExportSceneModel", sceneVersion);
+	////				importSceneModel(0);
+	//			}
 			} 
 			finally  {
 				doExport = false;
